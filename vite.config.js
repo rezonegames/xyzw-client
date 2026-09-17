@@ -143,6 +143,11 @@ export default defineConfig(async () => {
       open: true,
       host: true,
       proxy: {
+        // 后端 API 代理
+        "/api/v1": {
+          target: "http://localhost:3001",
+          changeOrigin: true,
+        },
         // 微信登录接口代理
         "/api/weixin": {
           target: "https://open.weixin.qq.com",

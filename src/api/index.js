@@ -55,22 +55,22 @@ request.interceptors.response.use(
           window.location.href = "/login";
           return Promise.reject({
             success: false,
-            message: "登录已过期，请重新登录",
+            message: data?.message || "登录已过期，请重新登录",
           });
         case 403:
           return Promise.reject({
             success: false,
-            message: "没有权限访问",
+            message: data?.message || "没有权限访问",
           });
         case 404:
           return Promise.reject({
             success: false,
-            message: "请求的资源不存在",
+            message: data?.message || "请求的资源不存在",
           });
         case 500:
           return Promise.reject({
             success: false,
-            message: "服务器内部错误",
+            message: data?.message || "服务器内部错误",
           });
         default:
           return Promise.reject({
@@ -103,6 +103,65 @@ const api = {
     logout: () => request.post("/auth/logout"),
     getUserInfo: () => request.get("/auth/user"),
     refreshToken: () => request.post("/auth/refresh"),
+  },
+
+  // Token 管理
+  tokens: {
+    getList: () => request.get("/tokens"),
+    add: (tokenData) => request.post("/tokens", tokenData),
+    update: (id, tokenData) => request.put(`/tokens/${id}`, tokenData),
+    delete: (id) => request.delete(`/tokens/${id}`),
+    import: (tokens) => request.post("/tokens/import", { tokens }),
+    export: () => request.get("/tokens/export"),
+    updateDailySettings: (id, settings) =>
+      request.put(`/tokens/${id}/daily-settings`, settings),
+  },
+
+  // WebSocket 连接管理（后端）
+  connections: {
+    connect: (tokenId, body) => request.post(`/connections/${tokenId}/connect`, body || {}),
+    disconnect: (tokenId) => request.post(`/connections/${tokenId}/disconnect`),
+    getStatus: (tokenId) => request.get(`/connections/${tokenId}/status`),
+    list: () => request.get("/connections"),
+    sendCommand: (tokenId, cmd, params, timeout) =>
+      request.post(`/connections/${tokenId}/command`, { cmd, params, timeout }),
+    batchCommand: (tokenId, commands) =>
+      request.post(`/connections/${tokenId}/batch-command`, { commands }),
+    getGameData: (tokenId) => request.get(`/connections/${tokenId}/gamedata`),
+    getRoleInfo: (tokenId, refresh = false) =>
+      request.get(`/connections/${tokenId}/roleinfo${refresh ? '?refresh=true' : ''}`),
+  },
+
+  // 任务管理（后端）
+  tasks: {
+    startDaily: (tokenId, settings) =>
+      request.post(`/tasks/daily/${tokenId}`, { settings }),
+    cancel: (tokenId) => request.post(`/tasks/${tokenId}/cancel`),
+    getStatus: (tokenId) => request.get(`/tasks/${tokenId}/status`),
+    getHistory: (page, limit) =>
+      request.get(`/tasks/history?page=${page || 1}&limit=${limit || 20}`),
+    getLogs: (taskId) => request.get(`/tasks/${taskId}/logs`),
+  },
+
+  // 定时任务（后端）
+  scheduledTasks: {
+    list: () => request.get('/tasks/scheduled'),
+    create: (data) => request.post('/tasks/scheduled', data),
+    update: (id, data) => request.put(`/tasks/scheduled/${id}`, data),
+    remove: (id) => request.delete(`/tasks/scheduled/${id}`),
+    toggle: (id) => request.post(`/tasks/scheduled/${id}/toggle`),
+    execute: (id) => request.post(`/tasks/scheduled/${id}/execute`),
+  },
+
+  // 主线推关（后端）
+  levelPush: {
+    start: (tokenId, body) =>
+      request.post(`/level-push/${tokenId}/start`, body || {}),
+    stop: (tokenId) => request.post(`/level-push/${tokenId}/stop`),
+    getStatus: (tokenId) => request.get(`/level-push/${tokenId}/status`),
+    getAllStatus: () => request.get("/level-push/status"),
+    useTorch: (tokenId, itemId, quantity, body) =>
+      request.post(`/level-push/${tokenId}/torch`, { itemId, quantity, ...body }),
   },
 
   // 游戏角色相关

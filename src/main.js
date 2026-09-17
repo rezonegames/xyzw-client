@@ -51,5 +51,9 @@ const applyTheme = () => {
 
 applyTheme();
 
+// 初始化 Token 后端同步（登录后自动从服务器拉取 token 列表）
+import { initTokenSync } from "@/composables/useTokenSync";
+initTokenSync();
+
 // 挂载应用
 app.mount("#app");

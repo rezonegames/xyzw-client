@@ -1,206 +1,92 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import * as autoRoutes from "vue-router/auto-routes";
 import { useTokenStore } from '@/stores/tokenStore'
-import { isNowInLegionWarTime } from "@/utils/clubBattleUtils"
+import { useAuthStore } from '@/stores/auth'
 
-const generatedRoutes = autoRoutes.routes ?? [];
-
-const my_routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: () => import('@/views/Home.vue'),
-    meta: {
-      title: '首页',
-      requiresToken: false
-    }
-  },
-  {
-    path: '/tokens',
-    name: 'TokenImport',
-    component: () => import('@/views/TokenImport/index.vue'),
-    meta: {
-      title: 'Token管理',
-      requiresToken: false
-    },
-    props: route => ({
-      token: route.query.token,
-      name: route.query.name,
-      server: route.query.server,
-      wsUrl: route.query.wsUrl,
-      api: route.query.api,
-      auto: route.query.auto === 'true'
-    })
-  },
-  {
-    path: '/game',
-    name: 'GamePlayer',
-    component: () => import('@/views/GamePlayer.vue'),
-    meta: {
-      title: '游戏',
-      requiresToken: true
-    },
-    props: route => ({
-      bin_id: route.query.bin_id
-    })
-  },
+const routes = [
   {
     name: 'DefaultLayout',
     path: '/admin',
     component: () => import('@/layout/DefaultLayout.vue'),
     children: [
       {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: () => import('@/views/Dashboard.vue'),
-        meta: {
-          title: '控制台',
-          requiresToken: true
-        }
-      },
-      {
-        path: 'game-features',
-        name: 'GameFeatures',
-        component: () => import('@/views/GameFeatures.vue'),
-        meta: {
-          title: '游戏功能',
-          requiresToken: true
-        }
-      },
-      {
-        path: 'message-test',
-        name: 'MessageTest',
-        component: () => import('@/components/Test/MessageTester.vue'),
-        meta: {
-          title: '消息测试',
-          requiresToken: true
-        }
-      },
-      {
-        path: 'legion-war',
-        name: 'LegionWar',
-        component: () => import('@/views/LegionWar.vue'),
-        meta: {
-          title: '实时盐场',
-          requiresToken: true
-        }
-      },
-      {
-        path: 'profile',
-        name: 'Profile',
-        component: () => import('@/views/Profile.vue'),
-        meta: {
-          title: '个人设置',
-          requiresToken: true
-        }
-      },
-      {
-        path: 'daily-tasks',
-        name: 'DailyTasks',
-        component: () => import('@/views/DailyTasks.vue'),
-        meta: {
-          title: '日常任务',
-          requiresToken: true
-        }
+        path: 'pushing-levels',
+        name: 'PushingLevels',
+        component: () => import('@/views/PushingLevels.vue'),
+        meta: { title: '主线推关', requiresToken: true },
       },
       {
         path: 'batch-daily-tasks',
         name: 'BatchDailyTasks',
         component: () => import('@/views/BatchDailyTasks.vue'),
-        meta: {
-          title: '批量日常',
-          requiresToken: true
-        }
+        meta: { title: '批量日常', requiresToken: true },
       },
-      {
-        path: 'PushingLevels',
-        name: 'PushingLevels',
-        component: () => import('@/views/PushingLevels.vue'),
-        meta: {
-          title: '主线推关',
-          requiresToken: true
-        }
-      },
-      // 增加自动路由引用
-      ...generatedRoutes,
-    ]
+    ],
   },
-  {
-    path: '/websocket-test',
-    name: 'WebSocketTest',
-    component: () => import('@/components/Test/WebSocketTester.vue'),
-    meta: {
-      title: 'WebSocket测试',
-      requiresToken: true
-    }
-  },
-  // 兼容旧路由，重定向到新的token管理页面
   {
     path: '/login',
-    redirect: '/tokens'
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+    meta: { title: '登录' },
   },
   {
     path: '/register',
-    redirect: '/tokens'
+    name: 'Register',
+    component: () => import('@/views/Register.vue'),
+    meta: { title: '注册' },
   },
-  {
-    path: '/game-roles',
-    redirect: '/tokens'
-  },
-  // 增加自动路由引用
-  ...generatedRoutes,
+  // 所有旧路由重定向到主线推关
+  { path: '/', redirect: '/admin/pushing-levels' },
+  { path: '/tokens', redirect: '/admin/pushing-levels' },
+  { path: '/admin/dashboard', redirect: '/admin/pushing-levels' },
+  { path: '/admin/game-features', redirect: '/admin/pushing-levels' },
+  { path: '/admin/PushingLevels', redirect: '/admin/pushing-levels' },
+  { path: '/admin/daily-tasks', redirect: '/admin/batch-daily-tasks' },
+  { path: '/admin/message-test', redirect: '/admin/pushing-levels' },
+  { path: '/admin/profile', redirect: '/admin/pushing-levels' },
+  { path: '/game-roles', redirect: '/admin/pushing-levels' },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFound.vue'),
-    meta: {
-      title: '页面不存在'
-    }
-  }
+    meta: { title: '页面不存在' },
+  },
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: my_routes,
+  routes,
   scrollBehavior(to, from, savedPosition) {
-    if (savedPosition) {
-      return savedPosition
-    } else {
-      return { top: 0 }
-    }
-  }
+    return savedPosition || { top: 0 }
+  },
 })
-
-// 热更新路由
-autoRoutes.handleHotUpdate?.(router);
 
 // 导航守卫
 router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
   const tokenStore = useTokenStore()
 
-  // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - XYZW 游戏管理系统` : 'XYZW 游戏管理系统'
-  if(to.name==="LegionWar"&&!isNowInLegionWarTime()){
-  // if(to.name==="LegionWar"&&isNowInLegionWarTime()){
-    next('/admin/dashboard');
-    return;
+  document.title = to.meta.title ? `${to.meta.title} - XYZW` : 'XYZW'
+
+  const publicPages = ['/login', '/register']
+  const isPublicPage = publicPages.includes(to.path)
+
+  if (!authStore.isAuthenticated && !isPublicPage) {
+    next('/login')
+    return
   }
-  // 检查是否需要Token
-  // if (to.meta.requiresToken  && tokenStore.getWebSocketStatus(tokenStore.selectedToken.id)=="disconnected") {
-    if (to.meta.requiresToken  && !tokenStore.hasTokens) {
-    next('/tokens')
-  } else if (to.path === '/' && tokenStore.hasTokens) {
-    // 首页重定向逻辑
-    if (tokenStore.selectedToken) {
-      next('/admin/dashboard')
-    } else {
-      next('/tokens')
-    }
-  } else {
+
+  if (authStore.isAuthenticated && isPublicPage) {
+    next('/admin/pushing-levels')
+    return
+  }
+
+  if (to.meta.requiresToken && !tokenStore.hasTokens) {
+    // 没有 token 时仍然进入页面，页面内会提示添加 token
     next()
+    return
   }
+
+  next()
 })
-
-
 
 export default router

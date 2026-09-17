@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { useLocalTokenStore } from "./localTokenManager";
+import api from "@/api/index";
 
 export const useAuthStore = defineStore("auth", () => {
   // 状态
@@ -8,82 +8,44 @@ export const useAuthStore = defineStore("auth", () => {
   const token = ref(localStorage.getItem("token") || null);
   const isLoading = ref(false);
 
-  const localTokenStore = useLocalTokenStore();
-
   // 计算属性
   const isAuthenticated = computed(() => !!token.value && !!user.value);
   const userInfo = computed(() => user.value);
 
-  // 登录 - 移除API调用，使用本地认证
+  // 登录
   const login = async (credentials) => {
     try {
       isLoading.value = true;
+      const res = await api.auth.login(credentials);
 
-      // 模拟本地认证逻辑
-      const mockUser = {
-        id: "local_user_" + Date.now(),
-        username: credentials.username,
-        email: credentials.email || `${credentials.username}@local.game`,
-        avatar: "/icons/xiaoyugan.png",
-        createdAt: new Date().toISOString(),
-      };
-
-      const mockToken =
-        "local_token_" +
-        Date.now() +
-        "_" +
-        Math.random().toString(36).substr(2, 9);
-
-      token.value = mockToken;
-      user.value = mockUser;
-
-      // 保存到本地存储
-      localStorage.setItem("token", token.value);
-      localStorage.setItem("user", JSON.stringify(user.value));
-
-      // 同时保存到token管理器
-      localTokenStore.setUserToken(mockToken);
-
-      return { success: true };
+      if (res.success) {
+        token.value = res.data.token;
+        user.value = res.data.user;
+        localStorage.setItem("token", token.value);
+        localStorage.setItem("user", JSON.stringify(user.value));
+        return { success: true };
+      }
+      return { success: false, message: res.message || "登录失败" };
     } catch (error) {
       console.error("登录错误:", error);
-      return { success: false, message: "本地认证失败" };
+      return { success: false, message: error?.message || "登录失败" };
     } finally {
       isLoading.value = false;
     }
   };
 
-  // 注册 - 移除API调用，使用本地注册
+  // 注册
   const register = async (userInfo) => {
     try {
       isLoading.value = true;
-
-      // 检查用户名是否已存在（简单的本地检查）
-      const existingUsers = JSON.parse(
-        localStorage.getItem("registeredUsers") || "[]",
-      );
-      const userExists = existingUsers.some(
-        (u) => u.username === userInfo.username,
-      );
-
-      if (userExists) {
-        return { success: false, message: "用户名已存在" };
+      const res = await api.auth.register(userInfo);
+      if (res.success) {
+        return { success: true, message: res.message || "注册成功，请登录" };
       }
-
-      // 保存新用户信息到本地
-      const newUser = {
-        ...userInfo,
-        id: "user_" + Date.now(),
-        createdAt: new Date().toISOString(),
-      };
-
-      existingUsers.push(newUser);
-      localStorage.setItem("registeredUsers", JSON.stringify(existingUsers));
-
-      return { success: true, message: "注册成功，请登录" };
+      return { success: false, message: res.message || "注册失败" };
     } catch (error) {
       console.error("注册错误:", error);
-      return { success: false, message: "本地注册失败" };
+      return { success: false, message: error?.message || "注册失败" };
     } finally {
       isLoading.value = false;
     }
@@ -93,37 +55,26 @@ export const useAuthStore = defineStore("auth", () => {
   const logout = () => {
     user.value = null;
     token.value = null;
-
-    // 清除本地存储
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    localStorage.removeItem("gameRoles");
-
-    // 清除token管理器中的数据
-    localTokenStore.clearUserToken();
-    localTokenStore.clearAllGameTokens();
+    // 清空本地 token 列表，防止切换账号看到别人的数据
+    localStorage.removeItem("gameTokens");
+    localStorage.removeItem("selectedTokenId");
+    localStorage.removeItem("tokenGroups");
   };
 
-  // 获取用户信息 - 移除API调用，使用本地数据
+  // 获取用户信息
   const fetchUserInfo = async () => {
     try {
       if (!token.value) return false;
-
-      // 从本地存储获取用户信息
-      const savedUser = localStorage.getItem("user");
-      if (savedUser) {
-        try {
-          user.value = JSON.parse(savedUser);
-          return true;
-        } catch (error) {
-          console.error("解析用户信息失败:", error);
-          logout();
-          return false;
-        }
-      } else {
-        logout();
-        return false;
+      const res = await api.auth.getUserInfo();
+      if (res.success) {
+        user.value = res.data;
+        localStorage.setItem("user", JSON.stringify(user.value));
+        return true;
       }
+      logout();
+      return false;
     } catch (error) {
       console.error("获取用户信息失败:", error);
       logout();
@@ -131,32 +82,28 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
-  // 初始化认证状态 - 移除API验证，使用本地验证
+  // 初始化认证状态
   const initAuth = async () => {
+    if (!token.value) return;
+    // 先从 localStorage 恢复，再异步验证
     const savedUser = localStorage.getItem("user");
-    if (token.value && savedUser) {
+    if (savedUser) {
       try {
         user.value = JSON.parse(savedUser);
-        // 初始化token管理器
-        localTokenStore.initTokenManager();
-      } catch (error) {
-        console.error("初始化认证失败:", error);
-        logout();
+      } catch (e) {
+        // ignore
       }
     }
+    // 后台验证 token 有效性
+    await fetchUserInfo();
   };
 
   return {
-    // 状态
     user,
     token,
     isLoading,
-
-    // 计算属性
     isAuthenticated,
     userInfo,
-
-    // 方法
     login,
     register,
     logout,

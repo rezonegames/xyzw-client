@@ -1,34 +1,35 @@
 <template>
   <a-card>
-    <template #extra>
-      <div class="header-actions">
+    <template #default>
+      <!-- 操作按钮行 -->
+      <div class="action-bar">
+        <n-button size="small" type="success" @click="showWxQrcode = true">
+          <template #icon>
+            <n-icon><Scan /></n-icon>
+          </template>
+          微信扫码
+        </n-button>
         <n-button size="small" @click="refreshTokens">
           <template #icon>
-            <n-icon>
-              <Refresh />
-            </n-icon>
+            <n-icon><Refresh /></n-icon>
           </template>
-          <span class="btn-text">刷新</span>
+          刷新
         </n-button>
         <n-button size="small" type="warning" @click="exportTokens">
           <template #icon>
             <i class="i-mdi:download"></i>
           </template>
-          <span class="btn-text">导出</span>
+          导出
         </n-button>
         <n-upload :show-file-list="false" accept=".json" @change="importTokens">
           <n-button size="small" type="info">
             <template #icon>
-              <n-icon>
-                <CloudUpload />
-              </n-icon>
+              <n-icon><CloudUpload /></n-icon>
             </template>
-            <span class="btn-text">导入</span>
+            导入
           </n-button>
         </n-upload>
       </div>
-    </template>
-    <template #default>
       <!-- 用户Token -->
       <div class="token-section">
         <h4>用户认证Token</h4>
@@ -137,6 +138,21 @@
       <n-button type="error" @click="clearAllTokens"> 清除所有Token </n-button>
     </template>
   </a-card>
+
+  <!-- 微信扫码导入弹窗 -->
+  <n-modal
+    v-model:show="showWxQrcode"
+    preset="card"
+    title="微信扫码导入"
+    style="max-width: 700px; width: 95vw"
+    :content-style="{
+      maxHeight: 'calc(100dvh - 120px)',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+    }"
+  >
+    <WxQrcodeImport @ok="showWxQrcode = false" @cancel="showWxQrcode = false" />
+  </n-modal>
 </template>
 
 <script setup>
@@ -145,6 +161,7 @@ import { useMessage, useDialog, NIcon } from "naive-ui";
 import { gameTokens } from "@/stores/tokenStore";
 import { useLocalTokenStore } from "@/stores/localTokenManager";
 import { useGameRolesStore } from "@/stores/gameRoles";
+import WxQrcodeImport from "@/views/TokenImport/wxqrcode.vue";
 import {
   Refresh,
   Download,
@@ -154,12 +171,15 @@ import {
   TrashBin,
   SyncCircle,
   CopyOutline,
+  Scan,
 } from "@vicons/ionicons5";
 
 const message = useMessage();
 const dialog = useDialog();
 const localTokenStore = useLocalTokenStore();
 const gameRolesStore = useGameRolesStore();
+
+const showWxQrcode = ref(false);
 
 // 方法
 const maskToken = (token) => {
@@ -647,6 +667,7 @@ const clearAllTokens = () => {
   border: 1px solid var(--border-light);
   border-radius: var(--border-radius-medium);
   padding: var(--spacing-md);
+  overflow: hidden;
 }
 
 .token-header {
@@ -699,6 +720,8 @@ const clearAllTokens = () => {
   color: var(--text-primary);
   font-family: monospace;
   word-break: break-all;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .bulk-actions {
@@ -707,6 +730,15 @@ const clearAllTokens = () => {
   justify-content: center;
   padding-top: var(--spacing-lg);
   border-top: 1px solid var(--border-light);
+}
+
+.action-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .header-actions {
@@ -743,8 +775,45 @@ const clearAllTokens = () => {
     align-items: stretch;
   }
 
+  .token-actions {
+    justify-content: flex-end;
+  }
+
   .token-details {
     grid-template-columns: 1fr;
+  }
+
+  .detail-value {
+    font-size: 12px;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+
+  .game-token-item {
+    padding: 10px;
+  }
+
+  .token-section {
+    margin-bottom: 12px;
+  }
+
+  .token-section h4 {
+    font-size: 14px;
+  }
+
+  .role-info {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .role-name {
+    font-size: 14px;
+  }
+
+  .role-server {
+    font-size: 12px;
   }
 
   .bulk-actions {

@@ -1,114 +1,79 @@
 <template>
-  <div class="register-page">
-    <div class="register-container">
-      <div class="register-card glass">
-        <div class="card-header">
-          <div class="brand">
-            <img src="/icons/xiaoyugan.png" alt="XYZW" class="brand-logo" />
-            <h1 class="brand-title">注册 XYZW 账户</h1>
-          </div>
-          <p class="welcome-text">加入我们，开始您的游戏管理之旅</p>
+  <div class="auth-page">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <img src="/icons/xiaoyugan.png" alt="XYZW" class="auth-logo" />
+          <h1>注册账号</h1>
+          <p class="auth-subtitle">创建你的 XYZW 助手账号</p>
         </div>
 
-        <div class="card-body">
-          <n-form
-            ref="registerFormRef"
-            :model="registerForm"
-            :rules="registerRules"
-            size="large"
-            :show-label="false"
-          >
-            <n-form-item path="username">
-              <n-input
-                v-model:value="registerForm.username"
-                placeholder="用户名"
-                :input-props="{ autocomplete: 'username' }"
-              >
-                <template #prefix>
-                  <n-icon>
-                    <PersonCircle />
-                  </n-icon>
-                </template>
-              </n-input>
-            </n-form-item>
-
-            <n-form-item path="email">
-              <n-input
-                v-model:value="registerForm.email"
-                placeholder="邮箱地址"
-                :input-props="{ autocomplete: 'email' }"
-              >
-                <template #prefix>
-                  <n-icon>
-                    <Mail />
-                  </n-icon>
-                </template>
-              </n-input>
-            </n-form-item>
-
-            <n-form-item path="password">
-              <n-input
-                v-model:value="registerForm.password"
-                type="password"
-                placeholder="密码"
-                :input-props="{ autocomplete: 'new-password' }"
-              >
-                <template #prefix>
-                  <n-icon>
-                    <Lock />
-                  </n-icon>
-                </template>
-              </n-input>
-            </n-form-item>
-
-            <n-form-item path="confirmPassword">
-              <n-input
-                v-model:value="registerForm.confirmPassword"
-                type="password"
-                placeholder="确认密码"
-                :input-props="{ autocomplete: 'new-password' }"
-                @keydown.enter="handleRegister"
-              >
-                <template #prefix>
-                  <n-icon>
-                    <Lock />
-                  </n-icon>
-                </template>
-              </n-input>
-            </n-form-item>
-
-            <div class="form-options">
-              <n-checkbox v-model:checked="registerForm.agreeTerms">
-                我已阅读并同意
-                <n-button text type="primary" @click="showTerms = true">
-                  服务条款
-                </n-button>
-                和
-                <n-button text type="primary" @click="showPrivacy = true">
-                  隐私政策
-                </n-button>
-              </n-checkbox>
-            </div>
-
-            <n-button
-              type="primary"
-              size="large"
-              block
-              :loading="authStore.isLoading"
-              :disabled="!registerForm.agreeTerms"
-              class="register-button"
-              @click="handleRegister"
+        <n-form
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          size="large"
+          :show-label="false"
+        >
+          <n-form-item path="username">
+            <n-input
+              v-model:value="form.username"
+              placeholder="用户名（3-20字符）"
+              :input-props="{ autocomplete: 'username' }"
             >
-              注册账户
-            </n-button>
-          </n-form>
+              <template #prefix
+                ><n-icon><PersonCircle /></n-icon
+              ></template>
+            </n-input>
+          </n-form-item>
+          <n-form-item path="password">
+            <n-input
+              v-model:value="form.password"
+              type="password"
+              show-password-on="click"
+              placeholder="密码（至少6位）"
+              :input-props="{ autocomplete: 'new-password' }"
+            >
+              <template #prefix
+                ><n-icon><LockClosed /></n-icon
+              ></template>
+            </n-input>
+          </n-form-item>
+          <n-form-item path="confirmPassword">
+            <n-input
+              v-model:value="form.confirmPassword"
+              type="password"
+              show-password-on="click"
+              placeholder="确认密码"
+              :input-props="{ autocomplete: 'new-password' }"
+              @keydown.enter="handleRegister"
+            >
+              <template #prefix
+                ><n-icon><LockClosed /></n-icon
+              ></template>
+            </n-input>
+          </n-form-item>
+          <n-button
+            type="primary"
+            size="large"
+            block
+            :loading="loading"
+            class="auth-btn"
+            @click="handleRegister"
+          >
+            注册
+          </n-button>
+        </n-form>
 
-          <div class="login-prompt">
-            <span>已有账户？</span>
-            <n-button text type="primary" @click="router.push('/login')">
-              立即登录
-            </n-button>
-          </div>
+        <div class="auth-footer">
+          <span>已有账号？</span>
+          <n-button text type="primary" @click="router.push('/login')"
+            >立即登录</n-button
+          >
+        </div>
+
+        <div class="disclaimer">
+          本工具完全免费，不收取任何费用，仅供学习交流使用，不用于商业用途。
         </div>
       </div>
     </div>
@@ -120,214 +85,144 @@ import { ref, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
 import { useAuthStore } from "@/stores/auth";
-import { PersonCircle, Mail } from "@vicons/ionicons5";
+import { PersonCircle, LockClosed } from "@vicons/ionicons5";
 
 const router = useRouter();
 const message = useMessage();
 const authStore = useAuthStore();
-const registerFormRef = ref(null);
+const formRef = ref(null);
+const loading = ref(false);
 
-// 注册表单数据
-const registerForm = reactive({
-  username: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
-  agreeTerms: false,
-});
+const form = reactive({ username: "", password: "", confirmPassword: "" });
 
-// 表单验证规则
-const registerRules = {
+const rules = {
   username: [
-    {
-      required: true,
-      message: "请输入用户名",
-      trigger: ["input", "blur"],
-    },
-    {
-      min: 3,
-      max: 20,
-      message: "用户名长度应在3-20个字符之间",
-      trigger: ["input", "blur"],
-    },
-  ],
-  email: [
-    {
-      required: true,
-      message: "请输入邮箱地址",
-      trigger: ["input", "blur"],
-    },
-    {
-      type: "email",
-      message: "请输入正确的邮箱格式",
-      trigger: ["input", "blur"],
-    },
+    { required: true, message: "请输入用户名", trigger: ["input", "blur"] },
+    { min: 3, max: 20, message: "3-20个字符", trigger: ["input", "blur"] },
   ],
   password: [
-    {
-      required: true,
-      message: "请输入密码",
-      trigger: ["input", "blur"],
-    },
-    {
-      min: 6,
-      message: "密码长度不能少于6位",
-      trigger: ["input", "blur"],
-    },
+    { required: true, message: "请输入密码", trigger: ["input", "blur"] },
+    { min: 6, message: "密码至少6位", trigger: ["input", "blur"] },
   ],
   confirmPassword: [
+    { required: true, message: "请确认密码", trigger: ["input", "blur"] },
     {
-      required: true,
-      message: "请确认密码",
-      trigger: ["input", "blur"],
-    },
-    {
-      validator: (rule, value) => {
-        return value === registerForm.password;
-      },
-      message: "两次输入的密码不一致",
+      validator: (_, v) => v === form.password,
+      message: "两次密码不一致",
       trigger: ["input", "blur"],
     },
   ],
 };
 
-// 处理注册
 const handleRegister = async () => {
-  if (!registerFormRef.value) return;
-
+  if (!formRef.value) return;
   try {
-    await registerFormRef.value.validate();
-
-    if (!registerForm.agreeTerms) {
-      message.warning("请先同意服务条款和隐私政策");
-      return;
-    }
-
+    await formRef.value.validate();
+    loading.value = true;
     const result = await authStore.register({
-      username: registerForm.username,
-      email: registerForm.email,
-      password: registerForm.password,
+      username: form.username,
+      password: form.password,
     });
-
     if (result.success) {
       message.success("注册成功，请登录");
       router.push("/login");
     } else {
       message.error(result.message);
     }
-  } catch (error) {
-    console.error("Registration validation failed:", error);
+  } catch (e) {
+    // validation failed
+  } finally {
+    loading.value = false;
   }
 };
 </script>
 
-<style scoped lang="scss">
-.register-page {
+<style scoped>
+.auth-page {
   min-height: 100dvh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-lg);
-  padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
-
-/* 深色主题下背景 */
-[data-theme="dark"] .register-page {
-  background: linear-gradient(135deg, #0f172a 0%, #1f2937 100%);
+[data-theme="dark"] .auth-page {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 }
-
-.register-container {
-  max-width: 500px;
+.auth-container {
   width: 100%;
+  max-width: 400px;
 }
-
-.register-card {
-  background: rgba(255, 255, 255, 0.95);
+.auth-card {
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(20px);
-  border-radius: var(--border-radius-xl);
-  padding: var(--spacing-2xl);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  padding: 36px 28px 28px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
 }
-
-/* 深色主题下注册卡片 */
-[data-theme="dark"] .register-card {
-  background: rgba(17, 24, 39, 0.85);
-  border-color: rgba(255, 255, 255, 0.1);
+[data-theme="dark"] .auth-card {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
-
-.card-header {
+.auth-header {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: 28px;
 }
-
-.brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+.auth-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  margin-bottom: 12px;
 }
-
-.brand-logo {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--border-radius-large);
+.auth-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--text-primary, #1f2937);
 }
-
-.brand-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
+.auth-subtitle {
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
   margin: 0;
 }
-
-.welcome-text {
-  color: var(--text-secondary);
-  font-size: var(--font-size-md);
-  margin: 0;
+.auth-btn {
+  height: 46px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 4px;
 }
-
-.card-body {
-  .n-form {
-    .n-form-item {
-      margin-bottom: var(--spacing-lg);
-    }
-  }
-}
-
-.form-options {
-  margin-bottom: var(--spacing-xl);
-
-  :deep(.n-checkbox) {
-    line-height: var(--line-height-relaxed);
-  }
-}
-
-.register-button {
-  height: 48px;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  margin-bottom: var(--spacing-lg);
-}
-
-.login-prompt {
+.auth-footer {
   text-align: center;
-  color: var(--text-secondary);
-
-  span {
-    margin-right: var(--spacing-sm);
-  }
+  margin-top: 20px;
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
 }
-
-@media (max-width: 640px) {
-  .register-card {
-    padding: var(--spacing-xl);
+.auth-footer span {
+  margin-right: 4px;
+}
+.disclaimer {
+  margin-top: 20px;
+  padding: 10px 12px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+[data-theme="dark"] .disclaimer {
+  background: rgba(254, 243, 199, 0.1);
+  border-color: rgba(253, 230, 138, 0.2);
+  color: #fbbf24;
+}
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 20px 20px;
   }
-
-  .brand-title {
-    font-size: var(--font-size-xl);
+  .auth-header h1 {
+    font-size: 20px;
   }
 }
 </style>
