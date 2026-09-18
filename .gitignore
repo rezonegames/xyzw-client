@@ -4,13 +4,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-docker/**/*.docker
-docker/**/*.zip
-docker/**/*.tar
-docker/**/*.tar.gz
-docker/**/*.tgz
-
-
 # Production builds
 dist/
 build/
@@ -82,3 +75,8 @@ server/config.json
 
 # Server logs
 server/logs/
+
+# Auto-generated
+components.d.ts
+src/auto-imports.d.ts
+src/typed-router.d.ts
